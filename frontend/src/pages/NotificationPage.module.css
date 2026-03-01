@@ -1,0 +1,182 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background: #1b5e20;
+  color: #fff;
+}
+
+.headerCenter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.back {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 6px 0;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
+.main {
+  flex: 1;
+  padding: 40px 24px;
+  max-width: 540px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.heading {
+  font-size: 1.5rem;
+  color: #1b5e20;
+  margin-bottom: 8px;
+}
+
+.subheading {
+  color: #555;
+  margin-bottom: 28px;
+  font-size: 0.95rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.input {
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 100%;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+}
+
+.postalRow {
+  display: flex;
+  gap: 8px;
+}
+
+.postalRow .input {
+  flex: 1;
+}
+
+.btnPrimary {
+  padding: 12px 24px;
+  background: #1b5e20;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #145218;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  padding: 10px 18px;
+  background: #1976d2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.btnSecondary:hover {
+  background: #1565c0;
+}
+
+.codeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+}
+
+.codeChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+  color: #1b5e20;
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #555;
+  line-height: 1;
+  padding: 0;
+}
+
+.removeBtn:hover {
+  color: #c62828;
+}
+
+.errorMsg {
+  color: #c62828;
+  font-size: 0.85rem;
+}
+
+.infoMsg {
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.success {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: flex-start;
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 8px;
+  padding: 24px;
+}
