@@ -1,0 +1,90 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  height: 64px;
+  background: #1b5e20;
+  color: #fff;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  font-size: 1.6rem;
+}
+
+.title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.main {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.intro h2 {
+  font-size: 1.4rem;
+  margin-bottom: 6px;
+  color: #1b5e20;
+}
+
+.intro p {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.searchBar {
+  width: 100%;
+}
+
+.selectedInfo {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+}
+
+.mapContainer {
+  flex: 1;
+  min-height: 480px;
+}
+
+.statusMsg {
+  color: #888;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.errorMsg {
+  color: #c62828;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.footer {
+  padding: 16px 24px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #888;
+  border-top: 1px solid #eee;
+}
