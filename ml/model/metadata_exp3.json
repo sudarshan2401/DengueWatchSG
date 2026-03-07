@@ -1,0 +1,25 @@
+{
+  "feature_cols": [
+    "lag_cases_1w",
+    "lag_cases_2w",
+    "lag_cases_3w",
+    "lag_cases_4w",
+    "lag_rainfall_2w",
+    "lag_rainfall_3w",
+    "lag_temp_2w",
+    "lag_temp_3w",
+    "week_sin",
+    "week_cos"
+  ],
+  "label_classes": [
+    "Low",
+    "Medium",
+    "High"
+  ],
+  "hyperparameters": {
+    "n_estimators": 1000,
+    "max_depth": 6,
+    "learning_rate": 0.1,
+    "subsample": 0.8
+  }
+}

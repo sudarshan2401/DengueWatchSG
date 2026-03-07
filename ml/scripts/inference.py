@@ -72,6 +72,9 @@ def main() -> None:
 
     feature_cols: list[str] = metadata["feature_cols"]
     label_classes: list[str] = metadata["label_classes"]
+    # Use tuned High threshold if available, otherwise fall back to argmax (0.33)
+    high_threshold: float = metadata.get("best_high_threshold", 0.33)
+    logger.info("Using High-class decision threshold: %.2f", high_threshold)
 
     # Load features
     logger.info("Loading features from %s", args.input_data)
@@ -79,9 +82,16 @@ def main() -> None:
     df = add_week_encoding(df)
 
     X = df[feature_cols]
-    predictions = model.predict(X)
+    proba = model.predict_proba(X)  # shape (n, 3): [P(Low), P(Medium), P(High)]
+    # Apply tuned threshold: flag High if P(High) >= threshold, else argmax of Low/Medium
+    import numpy as np
+    predictions = np.where(
+        proba[:, 2] >= high_threshold,
+        2,
+        np.argmax(proba[:, :2], axis=1),
+    )
     df["risk_level"] = [label_classes[p] for p in predictions]
-    df["score"] = model.predict_proba(X).max(axis=1)
+    df["score"] = proba.max(axis=1)
 
     logger.info("Predictions:\n%s", df[["planning_area", "risk_level", "score"]].to_string())
 
