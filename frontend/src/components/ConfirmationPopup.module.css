@@ -1,0 +1,125 @@
+/* ─── Overlay ─────────────────────────────────────────────────────────── */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 30, 14, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: overlayIn 0.25s ease-out;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ─── Card ────────────────────────────────────────────────────────────── */
+.popup-content {
+  background: var(--c-card);
+  padding: 44px 36px 40px;
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(26, 107, 55, 0.12);
+  text-align: center;
+  max-width: 400px;
+  width: 92%;
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative top accent bar */
+.popup-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--c-primary), var(--c-bright), var(--c-primary));
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.88) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ─── Checkmark icon ──────────────────────────────────────────────────── */
+.popup-content h2::before {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--c-low-bg);
+  border: 2px solid var(--c-low-border);
+  margin: 0 auto 20px;
+  background-image: url("data:image/svg+xml,%3Csvg width='72' height='72' viewBox='0 0 72 72' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='36' cy='36' r='36' fill='%23dcfce7'/%3E%3Cpath d='M22 36l10 10 18-18' stroke='%2316a34a' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: cover;
+  animation: checkIn 0.4s 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes checkIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ─── Heading ─────────────────────────────────────────────────────────── */
+.popup-content h2 {
+  font-family: 'Source Serif 4', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--c-primary);
+  margin-bottom: 12px;
+  animation: fadeUp 0.3s 0.2s ease-out both;
+}
+
+/* ─── Body text ───────────────────────────────────────────────────────── */
+.popup-content p {
+  margin-bottom: 28px;
+  color: var(--c-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  animation: fadeUp 0.3s 0.28s ease-out both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Button ──────────────────────────────────────────────────────────── */
+.popup-button {
+  background: var(--c-primary);
+  color: #fff;
+  border: none;
+  padding: 12px 32px;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  font-size: 0.93rem;
+  font-weight: 700;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  animation: fadeUp 0.3s 0.35s ease-out both;
+}
+
+.popup-button:hover {
+  background: var(--c-mid);
+  box-shadow: 0 6px 20px rgba(26, 107, 55, 0.3);
+}
+
+.popup-button:active {
+  transform: scale(0.97);
+}
