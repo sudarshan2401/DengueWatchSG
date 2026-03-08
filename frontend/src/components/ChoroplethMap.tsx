@@ -38,31 +38,27 @@ export default function ChoroplethMap({ areas, onAreaClick }: Props) {
     <div className={styles.mapWrapper}>
       {/* Map placeholder — replace with react-leaflet GeoJSON layers in production */}
       <div className={styles.mapPlaceholder} aria-label="Singapore dengue risk choropleth map">
-        <p className={styles.placeholderText}>
-          🗺️ Interactive choropleth map loads here.
-        </p>
-        <p className={styles.placeholderSub}>
-          Integrate <code>react-leaflet</code> GeoJSON with{' '}
-          <code>singapore-planning-areas.geojson</code>.
-        </p>
+        <div className={styles.placeholderHeader}>
+          <div>
+            <p className={styles.placeholderText}>🗺️ Singapore Planning Areas</p>
+            <p className={styles.placeholderSub}>Click an area to see its risk level</p>
+          </div>
+          <ul className={styles.legend}>
+            {(Object.entries(RISK_COLOURS) as [RiskLevel, string][]).map(([level, colour]) => (
+              <li key={level} className={styles.legendItem}>
+                <span className={styles.legendDot} style={{ backgroundColor: colour }} />
+                {level} Risk
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        {/* Legend */}
-        <ul className={styles.legend}>
-          {(Object.entries(RISK_COLOURS) as [RiskLevel, string][]).map(([level, colour]) => (
-            <li key={level} className={styles.legendItem}>
-              <span className={styles.legendDot} style={{ backgroundColor: colour }} />
-              {level} Risk
-            </li>
-          ))}
-        </ul>
-
-        {/* Sample area list to demonstrate data binding */}
         <ul className={styles.areaList}>
           {areas.slice(0, 8).map((area) => (
             <li
               key={area.name}
               className={styles.areaItem}
-              style={{ borderLeft: `4px solid ${RISK_COLOURS[area.riskLevel]}` }}
+              style={{ borderLeft: `3px solid ${RISK_COLOURS[area.riskLevel]}` }}
               onClick={() => onAreaClick?.(area)}
               onMouseEnter={() => setTooltip({ name: area.name, riskLevel: area.riskLevel })}
               onMouseLeave={() => setTooltip(null)}

@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { subscribe } from '../api'
+import ConfirmationPopup from '../components/ConfirmationPopup'
+import logo from '../assets/logo.png'
 import styles from './NotificationPage.module.css'
 
 export default function NotificationPage() {
@@ -10,11 +12,34 @@ export default function NotificationPage() {
   const [postalCodes, setPostalCodes] = useState<string[]>([])
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [message, setMessage] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [postalError, setPostalError] = useState('')
+  const [showPopup, setShowPopup] = useState(false)
+
+  function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value
+    setEmail(value)
+    if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setEmailError('Please enter a valid email address.')
+    } else {
+      setEmailError('')
+    }
+  }
+
+  function handlePostalInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value
+    setPostalInput(value)
+    if (value && !/^(0[1-9]|[1-7][0-9]|8[0-2])\d{4}$/.test(value)) {
+      setPostalError('Please enter a valid Singapore postal code.')
+    } else {
+      setPostalError('')
+    }
+  }
 
   function addPostalCode() {
     const code = postalInput.trim()
-    if (!/^\d{6}$/.test(code)) {
-      setMessage('Please enter a valid 6-digit postal code.')
+    if (!/^(0[1-9]|[1-7][0-9]|8[0-2])\d{4}$/.test(code)) {
+      setMessage('Please enter a valid Singapore postal code.')
       return
     }
     if (postalCodes.includes(code)) {
@@ -24,6 +49,7 @@ export default function NotificationPage() {
     setPostalCodes((prev) => [...prev, code])
     setPostalInput('')
     setMessage('')
+    setPostalError('')
   }
 
   function removePostalCode(code: string) {
@@ -32,8 +58,8 @@ export default function NotificationPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!email) {
-      setMessage('Please enter your email address.')
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage('Please enter a valid email address.')
       return
     }
     if (postalCodes.length === 0) {
@@ -46,6 +72,7 @@ export default function NotificationPage() {
       await subscribe({ email, postalCodes })
       setStatus('success')
       setMessage(`You're subscribed! We'll notify ${email} when risk levels change.`)
+      setShowPopup(true)
     } catch {
       setStatus('error')
       setMessage('Subscription failed. Please try again.')
@@ -56,28 +83,29 @@ export default function NotificationPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <button className={styles.back} onClick={() => navigate('/')}>
-          ← Back to Map
+          ← Map
         </button>
         <div className={styles.headerCenter}>
-          <span>🦟</span>
+          <img src={logo} alt="DengueWatch SG" className={styles.logoImage} />
           <h1>DengueWatch SG</h1>
         </div>
         <span />
       </header>
 
       <main className={styles.main}>
-        <h2 className={styles.heading}>🔔 Subscribe to Risk Alerts</h2>
+        <h2 className={styles.heading}>Subscribe to Risk Alerts</h2>
         <p className={styles.subheading}>
           Receive email notifications when dengue risk worsens in your monitored areas.
         </p>
 
-        {status === 'success' ? (
-          <div className={styles.success}>
-            <p>✅ {message}</p>
-            <button className={styles.btnPrimary} onClick={() => navigate('/')}>
-              Back to Map
-            </button>
-          </div>
+        {status === 'success' && showPopup ? (
+          <ConfirmationPopup
+            message={message}
+            onClose={() => {
+              setShowPopup(false)
+              navigate('/')
+            }}
+          />
         ) : (
           <form className={styles.form} onSubmit={handleSubmit}>
             {/* Email input */}
@@ -90,9 +118,10 @@ export default function NotificationPage() {
               type="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               required
             />
+            {emailError && <p className={styles.errorMsg}>{emailError}</p>}
 
             {/* Postal code input */}
             <label className={styles.label} htmlFor="postal">
@@ -105,7 +134,7 @@ export default function NotificationPage() {
                 type="text"
                 placeholder="6-digit postal code"
                 value={postalInput}
-                onChange={(e) => setPostalInput(e.target.value)}
+                onChange={handlePostalInputChange}
                 maxLength={6}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPostalCode())}
               />
@@ -117,6 +146,7 @@ export default function NotificationPage() {
                 Add
               </button>
             </div>
+            {postalError && <p className={styles.errorMsg}>{postalError}</p>}
 
             {/* Added postal codes */}
             {postalCodes.length > 0 && (
@@ -146,7 +176,7 @@ export default function NotificationPage() {
             <button
               type="submit"
               className={styles.btnPrimary}
-              disabled={status === 'loading'}
+              disabled={status === 'loading' || !!emailError || !!postalError}
             >
               {status === 'loading' ? 'Subscribing…' : 'Subscribe'}
             </button>

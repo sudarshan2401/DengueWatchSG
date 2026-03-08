@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { FiBell } from 'react-icons/fi'
 import styles from './NotificationBell.module.css'
 
 interface Props {
@@ -15,7 +16,7 @@ export default function NotificationBell({ count = 0 }: Props) {
       aria-label={`Notifications${count > 0 ? ` (${count} unread)` : ''}`}
       onClick={() => navigate('/subscribe')}
     >
-      🔔
+      <FiBell />
       {count > 0 && <span className={styles.badge}>{count}</span>}
     </button>
   )

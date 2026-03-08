@@ -14,11 +14,21 @@ export default function PostalCodeSearch({ onResult }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const code = e.target.value
+    setValue(code)
+    if (code && !/^(0[1-9]|[1-7][0-9]|8[0-2])\d{4}$/.test(code)) {
+      setError('Please enter a valid Singapore postal code.')
+    } else {
+      setError(null)
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const code = value.trim()
-    if (!/^\d{6}$/.test(code)) {
-      setError('Please enter a valid 6-digit Singapore postal code.')
+    if (!/^(0[1-9]|[1-7][0-9]|8[0-2])\d{4}$/.test(code)) {
+      setError('Please enter a valid Singapore postal code.')
       return
     }
     setError(null)
@@ -43,7 +53,7 @@ export default function PostalCodeSearch({ onResult }: Props) {
           type="text"
           placeholder="Enter postal code (e.g. 238801)"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={handleChange}
           maxLength={6}
           aria-label="Postal code"
         />

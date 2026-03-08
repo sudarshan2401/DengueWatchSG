@@ -2,73 +2,130 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 480px;
+  width: 100%;
 }
 
+/* ─── Search form ─────────────────────────────────────────────────────── */
 .form {
   display: flex;
   gap: 8px;
+  background: var(--c-card);
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--r-full);
+  padding: 5px 5px 5px 18px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+
+.form:focus-within {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(26, 107, 55, 0.12);
 }
 
 .input {
   flex: 1;
-  padding: 10px 14px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  border: none;
+  background: transparent;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: var(--c-text);
+  outline: none;
+  min-width: 0;
+  letter-spacing: 0.5px;
 }
 
-.input:focus {
-  outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+.input::placeholder {
+  color: var(--c-text-subtle);
+  letter-spacing: 0;
 }
 
 .button {
-  padding: 10px 20px;
-  background: #1976d2;
+  padding: 9px 22px;
+  background: var(--c-primary);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-full);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  transition: background 0.2s;
+  font-family: inherit;
+  letter-spacing: 0.2px;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
 }
 
 .button:hover:not(:disabled) {
-  background: #1565c0;
+  background: var(--c-mid);
+  box-shadow: 0 4px 14px rgba(26, 107, 55, 0.28);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* ─── Error message ───────────────────────────────────────────────────── */
 .error {
-  color: #c62828;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--c-high-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--c-high-bg);
+  border: 1px solid var(--c-high-border);
+  border-radius: var(--r-md);
+  padding: 9px 14px;
+  animation: slideIn 0.18s ease-out;
 }
 
+.error::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background: var(--c-high-solid);
+  border-radius: 50%;
+  flex-shrink: 0;
+  /* "!" rendered via clip-path arrow or box trick */
+  background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='7' cy='7' r='7' fill='%23dc2626'/%3E%3Cpath d='M7 4v3.5' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='7' cy='10' r='0.75' fill='white'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-color: transparent;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Result card ─────────────────────────────────────────────────────── */
 .result {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  padding: 11px 16px;
+  background: var(--c-card);
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow-sm);
+  animation: slideIn 0.2s ease-out;
 }
 
 .area {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  color: var(--c-text);
 }
 
 .badge {
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 600;
+  border-radius: var(--r-full);
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
