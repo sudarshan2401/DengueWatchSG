@@ -1,114 +1,89 @@
 """
 Risk Map Lambda Handler
 -----------------------
-GET /risk-map           → returns current weekly risk scores for all planning areas
-GET /postal-code/{code} → returns planning area & risk level for a postal code
+GET /risk         → returns current weekly risk scores for all planning areas
 """
-from __future__ import annotations
 
 import json
 import os
 import logging
 import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg2.extras
+
+_conn = None
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-
-def _get_db_connection():
-    return psycopg2.connect(
-        host=os.environ["DB_HOST"],
-        port=int(os.environ.get("DB_PORT", 5432)),
-        dbname=os.environ["DB_NAME"],
-        user=os.environ["DB_USER"],
-        password=os.environ["DB_PASSWORD"],
-    )
-
-
-def _response(status_code: int, body: object) -> dict:
-    return {
-        "statusCode": status_code,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-        },
-        "body": json.dumps(body),
-    }
-
-
-def handler(event: dict, context) -> dict:  # noqa: ANN001
-    path = event.get("path", "")
-    http_method = event.get("httpMethod", "GET")
-
-    if http_method != "GET":
-        return _response(405, {"error": "Method not allowed"})
+def lambda_handler(event, context):
+    method = event["requestContext"]["http"]["method"]
+    path   = event["requestContext"]["http"]["path"]
 
     try:
-        conn = _get_db_connection()
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            if path == "/risk-map":
-                return _handle_risk_map(cur)
-            elif path.startswith("/postal-code/"):
-                postal_code = path.split("/postal-code/", 1)[1]
-                return _handle_postal_code(cur, postal_code)
-            else:
-                return _response(404, {"error": "Not found"})
-    except Exception as exc:
-        logger.exception("Unhandled error: %s", exc)
-        return _response(500, {"error": "Internal server error"})
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+        if method == "GET" and path == "/default/dengue-api/risk":
+            return get_latest_risk()
+        
+        return _respond(404, {"error": "Route not found"})
 
+    except Exception as e:
+        logger.error(f"Unhandled error: {e}")
+        return _respond(500, {"error": "Internal server error"})
+    
 
-def _handle_risk_map(cur) -> dict:  # noqa: ANN001
-    cur.execute(
-        """
-        SELECT planning_area, risk_level, score, week
-        FROM planning_area_risk
-        WHERE week = (SELECT MAX(week) FROM planning_area_risk)
-        ORDER BY planning_area
-        """
-    )
+def _get_conn():
+    global _conn
+    if _conn is None or _conn.closed:
+        _conn = psycopg2.connect(
+            host=os.environ["DB_HOST"],
+            dbname=os.environ["DB_NAME"],
+            user=os.environ["DB_USER"],
+            password=os.environ["DB_PASSWORD"],
+            connect_timeout=5
+        )
+    return _conn
+
+def _respond(status, body):
+    return {
+        "statusCode": status,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps(body)
+    }
+
+# ── GET /risk ─────────────────────────────────────────────────────────────────
+
+def get_latest_risk():
+    conn = _get_conn()
+    cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT planning_area, risk_level, score, latitude, longitude, week
+        FROM   planning_area_risk
+        WHERE  week = (
+            SELECT week FROM planning_area_risk
+            ORDER  BY week DESC
+            LIMIT  1
+        )
+        ORDER  BY planning_area
+    """)
+
     rows = cur.fetchall()
-    result = [
-        {
-            "planningArea": row["planning_area"],
-            "riskLevel": row["risk_level"],
-            "score": float(row["score"]),
-            "week": row["week"],
-        }
-        for row in rows
-    ]
-    return _response(200, result)
+    cur.close()
 
+    if not rows:
+        return _respond(404, {"error": "No risk data found"})
+    
+    logging.info(f"Fetched {len(rows)} risk records for week {rows[0]['week']}")
 
-def _handle_postal_code(cur, postal_code: str) -> dict:
-    if not postal_code.isdigit() or len(postal_code) != 6:
-        return _response(400, {"error": "Invalid postal code"})
-
-    cur.execute(
-        """
-        SELECT pc.postal_code, pc.planning_area, r.risk_level
-        FROM postal_code_mapping pc
-        JOIN planning_area_risk r ON r.planning_area = pc.planning_area
-        WHERE pc.postal_code = %s
-          AND r.week = (SELECT MAX(week) FROM planning_area_risk)
-        """,
-        (postal_code,),
-    )
-    row = cur.fetchone()
-    if row is None:
-        return _response(404, {"error": "Postal code not found"})
-
-    return _response(
-        200,
-        {
-            "postalCode": row["postal_code"],
-            "planningArea": row["planning_area"],
-            "riskLevel": row["risk_level"],
-        },
-    )
+    return _respond(200, {
+        "week": rows[0]["week"],
+        "data": [
+            {
+                "planning_area": r["planning_area"],
+                "risk_level":    r["risk_level"],
+                "score":         float(r["score"]),
+                "latitude":      float(r["latitude"]),
+                "longitude":     float(r["longitude"])
+            }
+            for r in rows
+        ]
+    })
