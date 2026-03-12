@@ -11,18 +11,32 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from flask import Flask, request, Response
 
-from risk_map.handler import handler as risk_map_handler
-from subscriptions.handler import handler as subscriptions_handler
+# Load .env if present (local dev only)
+_env_file = Path(__file__).parent / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        if _line.strip() and not _line.startswith("#") and "=" in _line:
+            _k, _v = _line.split("=", 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
+
+from risk_map.handler import lambda_handler as risk_map_handler
+from postal_code.handler import lambda_handler as postal_code_handler
+from subscriptions.handler import lambda_handler as subscriptions_handler
 
 app = Flask(__name__)
 
 
 def _lambda_event(method: str, path: str, body: str | None = None) -> dict:
     return {
-        "httpMethod": method,
-        "path": path,
+        "requestContext": {
+            "http": {
+                "method": method,
+                "path": path,
+            }
+        },
         "body": body,
         "queryStringParameters": dict(request.args),
         "headers": dict(request.headers),
@@ -39,21 +53,21 @@ def _flask_response(lambda_response: dict) -> Response:
 
 @app.route("/risk-map", methods=["GET"])
 def risk_map():
-    return _flask_response(risk_map_handler(_lambda_event("GET", "/risk-map"), None))
+    return _flask_response(risk_map_handler(_lambda_event("GET", "/default/dengue-api/risk"), None))
 
 
 @app.route("/postal-code/<postal_code>", methods=["GET"])
 def postal_code(postal_code: str):
-    return _flask_response(
-        risk_map_handler(_lambda_event("GET", f"/postal-code/{postal_code}"), None)
-    )
+    event = _lambda_event("GET", f"/postal-code/{postal_code}")
+    event["pathParameters"] = {"code": postal_code}
+    return _flask_response(postal_code_handler(event, None))
 
 
 @app.route("/subscriptions", methods=["GET", "POST"])
 def subscriptions():
     body = request.get_data(as_text=True) or None
     return _flask_response(
-        subscriptions_handler(_lambda_event(request.method, "/subscriptions", body), None)
+        subscriptions_handler(_lambda_event(request.method, "/default/dengue-api/subscribe", body), None)
     )
 
 
