@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { subscribe } from '../api'
+import { subscribe, lookupPostalCode } from '../api'
 import ConfirmationPopup from '../components/ConfirmationPopup'
 import logo from '../assets/logo.png'
 import styles from './NotificationPage.module.css'
@@ -39,17 +39,17 @@ export default function NotificationPage() {
   function addPostalCode() {
     const code = postalInput.trim()
     if (!/^(0[1-9]|[1-7][0-9]|8[0-2])\d{4}$/.test(code)) {
-      setMessage('Please enter a valid Singapore postal code.')
+      setPostalError('Please enter a valid Singapore postal code.')
       return
     }
     if (postalCodes.includes(code)) {
-      setMessage('Postal code already added.')
+      setPostalError('Postal code already added.')
       return
     }
     setPostalCodes((prev) => [...prev, code])
     setPostalInput('')
-    setMessage('')
     setPostalError('')
+    setMessage('')
   }
 
   function removePostalCode(code: string) {
@@ -66,16 +66,28 @@ export default function NotificationPage() {
       setMessage('Please add at least one postal code to monitor.')
       return
     }
+
     setStatus('loading')
-    setMessage('')
+    setMessage('Resolving postal codes…')
+
+    let planning_areas: string[]
     try {
-      await subscribe({ email, postalCodes })
+      const results = await Promise.all(postalCodes.map((code) => lookupPostalCode(code)))
+      planning_areas = [...new Set(results.map((r) => r.planningArea))]
+    } catch {
+      setStatus('error')
+      setMessage('Could not resolve one or more postal codes. Please check them and try again.')
+      return
+    }
+
+    try {
+      await subscribe({ email, planning_areas })
       setStatus('success')
       setMessage(`You're subscribed! We'll notify ${email} when risk levels change.`)
       setShowPopup(true)
     } catch {
       setStatus('error')
-      setMessage('Subscription failed. Please try again.')
+      setMessage('Subscription failed. Please try again later.')
     }
   }
 
@@ -176,7 +188,7 @@ export default function NotificationPage() {
             <button
               type="submit"
               className={styles.btnPrimary}
-              disabled={status === 'loading' || !!emailError || !!postalError}
+              disabled={status === 'loading' || !!emailError || !!postalError || status === 'success'}
             >
               {status === 'loading' ? 'Subscribing…' : 'Subscribe'}
             </button>

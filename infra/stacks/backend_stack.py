@@ -8,6 +8,7 @@ Provisions:
 """
 from __future__ import annotations
 
+import os
 import aws_cdk as cdk
 from aws_cdk import (
     aws_apigateway as apigw,
@@ -56,6 +57,18 @@ class BackendStack(cdk.Stack):
         )
         db_secret.grant_read(risk_map_fn)
 
+        # ── Postal Code Lambda ────────────────────────────────────────────
+        postal_code_fn = lambda_.Function(
+            self, "PostalCodeFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="handler.lambda_handler",
+            code=lambda_.Code.from_asset("../backend/postal_code"),
+            environment={
+                "ONEMAP_TOKEN": os.environ.get("ONEMAP_TOKEN", ""),
+            },
+            timeout=cdk.Duration.seconds(15),
+        )
+
         # ── Subscriptions Lambda ──────────────────────────────────────────
         subscriptions_fn = lambda_.Function(
             self, "SubscriptionsFunction",
@@ -86,7 +99,7 @@ class BackendStack(cdk.Stack):
 
         postal_code_resource = api.root.add_resource("postal-code").add_resource("{code}")
         postal_code_resource.add_method(
-            "GET", apigw.LambdaIntegration(risk_map_fn)
+            "GET", apigw.LambdaIntegration(postal_code_fn)
         )
 
         subscriptions_resource = api.root.add_resource("subscriptions")

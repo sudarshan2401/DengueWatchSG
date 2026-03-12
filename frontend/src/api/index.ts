@@ -17,7 +17,7 @@ export async function lookupPostalCode(postalCode: string): Promise<PostalCodeIn
   return data
 }
 
-/** Subscribe an email address to monitor given postal codes */
+/** Subscribe an email address to monitor given planning areas */
 export async function subscribe(payload: Subscription): Promise<void> {
   await api.post('/subscriptions', payload)
 }

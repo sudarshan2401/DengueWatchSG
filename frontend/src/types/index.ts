@@ -18,5 +18,5 @@ export interface PostalCodeInfo {
 
 export interface Subscription {
   email: string
-  postalCodes: string[]
+  planning_areas: string[]
 }
