@@ -9,6 +9,9 @@ import os
 import logging
 import psycopg2
 import psycopg2.extras
+from email_validator import validate_email, EmailNotValidError
+from datetime import datetime
+from decimal import Decimal
 
 _conn = None
 
@@ -49,18 +52,41 @@ def _respond(status, body):
     return {
         "statusCode": status,
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(body)
+        "body": json.dumps(body, default=json_serial)
     }
 
+def json_serial(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError(f"Type {type(obj)} not serializable")
+
 def _get_subscriptions():
-    """List all subscriptions (admin use only)"""
+    """
+    List all subscriptions (admin use only)
+    Response format:
+    {
+        "subscriptions": [
+            {
+                "id": 1,
+                "email": "user@example.com",
+                "planning_areas": ["area1", "area2"],
+                "created_at": "2023-01-01T00:00:00",
+                "updated_at": "2023-01-01T00:00:00"
+            }
+        ]
+    }
+    """
     conn = _get_conn()
     cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("SELECT id, email, planning_areas, created_at, updated_at FROM subscriptions ORDER BY created_at DESC")
     rows = cur.fetchall()
 
-    return _respond(200, {"subscriptions": rows})
+    return _respond(200, {
+        "subscriptions": [dict(row) for row in rows]
+    })
 
 def _post_subscribe(body):
     """
@@ -77,6 +103,12 @@ def _post_subscribe(body):
     # Validate email and planning areas
     if not email:
         return _respond(400, {"error": "email is required"})
+
+    try:
+        valid = validate_email(email, check_deliverability=False)
+        email = valid.normalized  # returns cleaned canonical form
+    except EmailNotValidError as e:
+        return _respond(400, {"error": "Invalid email address"})
     
     if not planning_areas or not isinstance(planning_areas, list):
         return _respond(400, {"error": "planning_areas must be a non-empty list"})
