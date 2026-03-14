@@ -9,12 +9,27 @@ import logging
 import urllib.request
 import urllib.parse
 import urllib.error
+import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-ONEMAP_SEARCH_URL = "https://www.onemap.gov.sg/api/common/elastic/search"
+ONEMAP_SEARCH_URL        = "https://www.onemap.gov.sg/api/common/elastic/search"
 ONEMAP_PLANNING_AREA_URL = "https://www.onemap.gov.sg/api/public/popapi/getPlanningarea"
+SSM_TOKEN_PATH           = "/denguewatch/onemap/token"
+
+_cached_token = None  # cache the token in memory to avoid repeated SSM calls within the same Lambda instance
+
+
+def _get_token() -> str:
+    global _cached_token
+    if os.environ.get("ONEMAP_TOKEN"):  # local dev fallback
+        return os.environ["ONEMAP_TOKEN"]
+    if _cached_token:
+        return _cached_token
+    ssm = boto3.client("ssm", region_name=os.environ.get("AWS_REGION", "ap-southeast-1"))
+    _cached_token = ssm.get_parameter(Name=SSM_TOKEN_PATH, WithDecryption=True)["Parameter"]["Value"]
+    return _cached_token
 
 
 def lambda_handler(event, context):
@@ -36,11 +51,8 @@ def lambda_handler(event, context):
         return _respond(500, {"error": "Internal server error"})
 
 
-def _lookup_planning_area(postal_code: str) -> str | None:
-    token = os.environ.get("ONEMAP_TOKEN", "")
-    if not token:
-        raise ValueError("ONEMAP_TOKEN is not set")
-
+def _lookup_planning_area(postal_code: str):
+    token = _get_token()
     headers = {"Authorization": f"Bearer {token}"}
 
     # Step 1: get lat/lng from postal code
