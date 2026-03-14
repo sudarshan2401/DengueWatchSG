@@ -8,11 +8,13 @@ Provisions:
 """
 from __future__ import annotations
 
-import os
 import aws_cdk as cdk
 from aws_cdk import (
     aws_apigateway as apigw,
     aws_ec2 as ec2,
+    aws_events as events,
+    aws_events_targets as targets,
+    aws_iam as iam,
     aws_lambda as lambda_,
     aws_secretsmanager as secretsmanager,
 )
@@ -63,10 +65,39 @@ class BackendStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_11,
             handler="handler.lambda_handler",
             code=lambda_.Code.from_asset("../backend/postal_code"),
-            environment={
-                "ONEMAP_TOKEN": os.environ.get("ONEMAP_TOKEN", ""),
-            },
+            environment={},
             timeout=cdk.Duration.seconds(15),
+        )
+        postal_code_fn.add_to_role_policy(iam.PolicyStatement(
+            actions=["ssm:GetParameter"],
+            resources=[f"arn:aws:ssm:{self.region}:{self.account}:parameter/denguewatch/onemap/token"],
+        ))
+
+        # ── OneMap Token Refresher Lambda ─────────────────────────────────
+        refresher_fn = lambda_.Function(
+            self, "OneMapTokenRefresher",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="handler.lambda_handler",
+            code=lambda_.Code.from_asset("../backend/onemap_refresher"),
+            timeout=cdk.Duration.seconds(30),
+        )
+        refresher_fn.add_to_role_policy(iam.PolicyStatement(
+            actions=["ssm:GetParameter"],
+            resources=[
+                f"arn:aws:ssm:{self.region}:{self.account}:parameter/denguewatch/onemap/email",
+                f"arn:aws:ssm:{self.region}:{self.account}:parameter/denguewatch/onemap/password",
+            ],
+        ))
+        refresher_fn.add_to_role_policy(iam.PolicyStatement(
+            actions=["ssm:PutParameter"],
+            resources=[f"arn:aws:ssm:{self.region}:{self.account}:parameter/denguewatch/onemap/token"],
+        ))
+
+        # ── EventBridge rule: refresh token every day ──────────────────
+        events.Rule(
+            self, "OneMapTokenRefreshRule",
+            schedule=events.Schedule.rate(cdk.Duration.days(1)),
+            targets=[targets.LambdaFunction(refresher_fn)],
         )
 
         # ── Subscriptions Lambda ──────────────────────────────────────────
