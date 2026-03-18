@@ -4,147 +4,42 @@
   position: relative;
 }
 
-.mapPlaceholder {
+.leafletMap {
   width: 100%;
   height: 100%;
+}
+
+/* Legend overlaid on bottom-left of the map */
+.legend {
+  position: absolute;
+  bottom: 24px;
+  left: 12px;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  background: var(--c-card);
-  padding: 20px 22px;
-  overflow-y: auto;
-}
-
-.placeholderHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--c-border);
-}
-
-.placeholderText {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--c-primary);
-  letter-spacing: -0.2px;
-}
-
-.placeholderSub {
-  font-size: 0.77rem;
-  color: var(--c-text-subtle);
-  margin-top: 2px;
-}
-
-.legend {
-  display: flex;
-  gap: 8px;
+  gap: 6px;
   list-style: none;
-  flex-shrink: 0;
-  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .legendItem {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 4px 10px;
-  border-radius: var(--r-full);
-  background: #f5f8f5;
-  border: 1px solid var(--c-border);
-  color: var(--c-text-muted);
-}
-
-.legendItem:nth-child(1) {
-  background: var(--c-low-bg);
-  border-color: var(--c-low-border);
-  color: var(--c-low-text);
-}
-.legendItem:nth-child(2) {
-  background: var(--c-med-bg);
-  border-color: var(--c-med-border);
-  color: var(--c-med-text);
-}
-.legendItem:nth-child(3) {
-  background: var(--c-high-bg);
-  border-color: var(--c-high-border);
-  color: var(--c-high-text);
+  color: #333;
 }
 
 .legendDot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
-}
-
-.areaList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 8px;
-  width: 100%;
-  list-style: none;
-  align-content: start;
-}
-
-.areaItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 11px 14px;
-  background: var(--c-card);
-  border-radius: var(--r-md);
-  cursor: pointer;
-  font-size: 0.84rem;
-  font-weight: 500;
-  border: 1px solid var(--c-border);
-  border-left-width: 3px;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
-  color: var(--c-text);
-  box-shadow: var(--shadow-sm);
-}
-
-.areaItem:hover {
-  background: #f7fbf7;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.09);
-  transform: translateY(-1px);
-}
-
-.badge {
-  color: #fff;
-  font-size: 0.66rem;
-  padding: 3px 9px;
-  border-radius: var(--r-full);
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  flex-shrink: 0;
-}
-
-.tooltip {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--c-forest);
-  color: #fff;
-  padding: 7px 16px;
-  border-radius: var(--r-full);
-  font-size: 0.8rem;
-  font-weight: 500;
-  pointer-events: none;
-  white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  border: 1px solid rgba(74, 222, 128, 0.2);
-  animation: fadeUp 0.15s ease-out;
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }

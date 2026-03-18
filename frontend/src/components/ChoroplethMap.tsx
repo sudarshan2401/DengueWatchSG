@@ -1,87 +1,180 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap } from 'react-leaflet'
+import type { GeoJSON as LeafletGeoJSON } from 'leaflet'
+import type { GeoJsonObject, Feature } from 'geojson'
+import type { Layer } from 'leaflet'
 import type { RiskLevel } from '../types'
+import { getPlanningAreaBoundaries } from '../api'
 import styles from './ChoroplethMap.module.css'
 
-/** Colour palette for each risk level */
 export const RISK_COLOURS: Record<RiskLevel, string> = {
   Low: '#4caf50',
   Medium: '#ff9800',
   High: '#f44336',
 }
 
-interface PlanningAreaFeature {
+const NO_RISK_COLOUR = '#cccccc'
+
+export interface PlanningAreaFeature {
   name: string
   riskLevel: RiskLevel
   score: number
+  latitude: number
+  longitude: number
 }
 
 interface Props {
   areas: PlanningAreaFeature[]
   onAreaClick?: (area: PlanningAreaFeature) => void
+  selectedArea?: string
 }
 
-/**
- * ChoroplethMap renders a Leaflet map of Singapore planning areas
- * colour-coded by their predicted dengue risk level.
- *
- * NOTE: Actual GeoJSON boundary data should be loaded from
- *       /public/singapore-planning-areas.geojson
- *       (source: data.gov.sg Master Plan Subzone boundary).
- */
-export default function ChoroplethMap({ areas, onAreaClick }: Props) {
-  const [tooltip, setTooltip] = useState<{ name: string; riskLevel: RiskLevel } | null>(null)
+function FlyToArea({ selectedArea, areas }: { selectedArea?: string; areas: PlanningAreaFeature[] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!selectedArea) return
+    const area = areas.find((a) => a.name.toUpperCase() === selectedArea.toUpperCase())
+    if (area) {
+      map.flyTo([area.latitude, area.longitude], 13, { duration: 1 })
+    }
+  }, [selectedArea, areas, map])
+  return null
+}
 
-  // Build a lookup map for fast access during GeoJSON rendering
-  const riskByArea = new Map(areas.map((a) => [a.name.toUpperCase(), a]))
+export default function ChoroplethMap({ areas, onAreaClick, selectedArea }: Props) {
+  const [geoData, setGeoData] = useState<GeoJsonObject | null>(null)
+  const geoJsonRef = useRef<LeafletGeoJSON>(null)
+
+  useEffect(() => {
+    getPlanningAreaBoundaries().then(setGeoData).catch(console.error)
+  }, [])
+
+  // After the GeoJSON layer mounts/updates, bring the selected polygon to front
+  useEffect(() => {
+    if (!geoJsonRef.current || !selectedArea) return
+    geoJsonRef.current.eachLayer((layer) => {
+      const feature = (layer as any).feature as Feature | undefined
+      if (feature?.properties?.name?.toUpperCase() === selectedArea.toUpperCase()) {
+        ;(layer as any).bringToFront()
+      }
+    })
+  }, [selectedArea, geoData])
+
+  // Build lookup: UPPERCASE name → area data
+  const riskMap = new Map(areas.map((a) => [a.name.toUpperCase(), a]))
+
+  const getStyle = (feature?: Feature) => {
+    const name = (feature?.properties?.name as string | undefined)?.toUpperCase() ?? ''
+    const area = riskMap.get(name)
+    const isSelected = !!selectedArea && selectedArea.toUpperCase() === name
+    return {
+      fillColor: area ? RISK_COLOURS[area.riskLevel] : NO_RISK_COLOUR,
+      fillOpacity: isSelected ? 0.9 : 0.6,
+      color: '#ffffff',
+      weight: isSelected ? 3 : 1,
+    }
+  }
+
+  const onEachFeature = (feature: Feature, layer: Layer) => {
+    const name = (feature.properties?.name as string) ?? ''
+    const area = riskMap.get(name.toUpperCase())
+    const popup = area
+      ? `<div style="min-width:140px;font-family:sans-serif">
+           <div style="font-size:14px;font-weight:700;margin-bottom:6px">${area.name}</div>
+           <span style="display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#fff;background:${RISK_COLOURS[area.riskLevel]}">${area.riskLevel} Risk</span>
+         </div>`
+      : `<div style="font-family:sans-serif;font-size:13px"><strong>${name}</strong><br/><span style="color:#888">No data</span></div>`
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(layer as any).bindPopup(popup)
+    if (area) {
+      layer.on('click', () => onAreaClick?.(area))
+    }
+  }
+
+  // Key forces GeoJSON layer to re-render when risk data or selection changes
+  const geoKey = areas.map((a) => `${a.name}:${a.riskLevel}`).join(',') + (selectedArea ?? '')
+
+  const selectedAreaData = selectedArea
+    ? areas.find((a) => a.name.toUpperCase() === selectedArea.toUpperCase())
+    : null
+
+  // Marker position: prefer lat/lon from risk data, fall back to GeoJSON polygon bounds centre
+  const [markerPos, setMarkerPos] = useState<[number, number] | null>(null)
+  useEffect(() => {
+    if (!selectedArea) { setMarkerPos(null); return }
+    if (selectedAreaData) {
+      setMarkerPos([selectedAreaData.latitude, selectedAreaData.longitude])
+      return
+    }
+    if (!geoJsonRef.current) return
+    geoJsonRef.current.eachLayer((layer) => {
+      const feature = (layer as any).feature as Feature | undefined
+      if (feature?.properties?.name?.toUpperCase() === selectedArea.toUpperCase()) {
+        const bounds = (layer as any).getBounds?.()
+        if (bounds) {
+          const c = bounds.getCenter()
+          setMarkerPos([c.lat, c.lng])
+        }
+      }
+    })
+  }, [selectedArea, selectedAreaData, geoData])
 
   return (
     <div className={styles.mapWrapper}>
-      {/* Map placeholder — replace with react-leaflet GeoJSON layers in production */}
-      <div className={styles.mapPlaceholder} aria-label="Singapore dengue risk choropleth map">
-        <div className={styles.placeholderHeader}>
-          <div>
-            <p className={styles.placeholderText}>🗺️ Singapore Planning Areas</p>
-            <p className={styles.placeholderSub}>Click an area to see its risk level</p>
-          </div>
-          <ul className={styles.legend}>
-            {(Object.entries(RISK_COLOURS) as [RiskLevel, string][]).map(([level, colour]) => (
-              <li key={level} className={styles.legendItem}>
-                <span className={styles.legendDot} style={{ backgroundColor: colour }} />
-                {level} Risk
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <ul className={styles.areaList}>
-          {areas.slice(0, 8).map((area) => (
-            <li
-              key={area.name}
-              className={styles.areaItem}
-              style={{ borderLeft: `3px solid ${RISK_COLOURS[area.riskLevel]}` }}
-              onClick={() => onAreaClick?.(area)}
-              onMouseEnter={() => setTooltip({ name: area.name, riskLevel: area.riskLevel })}
-              onMouseLeave={() => setTooltip(null)}
-            >
-              <span>{area.name}</span>
-              <span
-                className={styles.badge}
-                style={{ backgroundColor: RISK_COLOURS[area.riskLevel] }}
-              >
-                {area.riskLevel}
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        {tooltip && (
-          <div className={styles.tooltip}>
-            <strong>{tooltip.name}</strong> — {tooltip.riskLevel} Risk
-          </div>
+      <MapContainer
+        center={[1.3521, 103.8198]}
+        zoom={11}
+        className={styles.leafletMap}
+        scrollWheelZoom
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <FlyToArea selectedArea={selectedArea} areas={areas} />
+        {geoData && (
+          <GeoJSON
+            key={geoKey}
+            ref={geoJsonRef}
+            data={geoData}
+            style={getStyle}
+            onEachFeature={onEachFeature}
+          />
         )}
-      </div>
-      {/* Suppress unused-variable warning for the lookup map used in GeoJSON render */}
-      <span data-testid="area-count" hidden>{riskByArea.size}</span>
+        {markerPos && (
+          <Marker position={markerPos}>
+            <Popup>
+              <div style={{ minWidth: 140, fontFamily: 'sans-serif' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
+                  {selectedAreaData?.name ?? selectedArea}
+                </div>
+                {selectedAreaData && (
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    borderRadius: 12,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#fff',
+                    background: RISK_COLOURS[selectedAreaData.riskLevel],
+                  }}>
+                    {selectedAreaData.riskLevel} Risk
+                  </span>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        )}
+      </MapContainer>
+
+      <ul className={styles.legend}>
+        {(Object.entries(RISK_COLOURS) as [RiskLevel, string][]).map(([level, colour]) => (
+          <li key={level} className={styles.legendItem}>
+            <span className={styles.legendDot} style={{ backgroundColor: colour }} />
+            {level} Risk
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

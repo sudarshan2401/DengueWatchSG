@@ -100,6 +100,19 @@ class BackendStack(cdk.Stack):
             targets=[targets.LambdaFunction(refresher_fn)],
         )
 
+        # ── Planning Areas Lambda ─────────────────────────────────────────
+        planning_areas_fn = lambda_.Function(
+            self, "PlanningAreasFunction",
+            runtime=lambda_.Runtime.PYTHON_3_11,
+            handler="handler.lambda_handler",
+            code=lambda_.Code.from_asset("../backend/planning_areas"),
+            timeout=cdk.Duration.seconds(30),
+        )
+        planning_areas_fn.add_to_role_policy(iam.PolicyStatement(
+            actions=["ssm:GetParameter"],
+            resources=[f"arn:aws:ssm:{self.region}:{self.account}:parameter/denguewatch/onemap/token"],
+        ))
+
         # ── Subscriptions Lambda ──────────────────────────────────────────
         subscriptions_fn = lambda_.Function(
             self, "SubscriptionsFunction",
@@ -131,6 +144,11 @@ class BackendStack(cdk.Stack):
         postal_code_resource = api.root.add_resource("postal-code").add_resource("{code}")
         postal_code_resource.add_method(
             "GET", apigw.LambdaIntegration(postal_code_fn)
+        )
+
+        planning_areas_resource = api.root.add_resource("planning-areas")
+        planning_areas_resource.add_method(
+            "GET", apigw.LambdaIntegration(planning_areas_fn)
         )
 
         subscriptions_resource = api.root.add_resource("subscriptions")

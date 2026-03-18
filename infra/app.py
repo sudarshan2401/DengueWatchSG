@@ -53,7 +53,7 @@ notification_stack = NotificationStack(
 # ── Layer 6: Frontend (S3 + CloudFront) ──────────────────────────────────
 frontend_stack = FrontendStack(
     app, "DengueWatchFrontend",
-    api_url=backend_stack.api_url,
+    api_url="https://vod0qxda75.execute-api.ap-southeast-1.amazonaws.com/default/dengue-api",
     env=env,
 )
 

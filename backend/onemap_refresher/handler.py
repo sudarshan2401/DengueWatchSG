@@ -2,7 +2,7 @@
 OneMap Token Refresher Lambda
 ------------------------------
 Fetches a fresh OneMap token using stored credentials and writes it to SSM.
-Triggered by EventBridge every 2 days.
+Trrigered by EventBridge every 3 days at midnight.
 """
 import json
 import logging
