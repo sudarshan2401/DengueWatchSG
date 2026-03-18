@@ -1,14 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { lookupPostalCode } from '../api'
-import type { PostalCodeInfo } from '../types'
+import type { PostalCodeInfo, RiskLevel } from '../types'
 import { RISK_COLOURS } from './ChoroplethMap'
 import styles from './PostalCodeSearch.module.css'
 
 interface Props {
   onResult?: (info: PostalCodeInfo) => void
+  riskByArea?: Map<string, RiskLevel>
 }
 
-export default function PostalCodeSearch({ onResult }: Props) {
+export default function PostalCodeSearch({ onResult, riskByArea }: Props) {
   const [value, setValue] = useState('')
   const [result, setResult] = useState<PostalCodeInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +35,9 @@ export default function PostalCodeSearch({ onResult }: Props) {
     setError(null)
     setLoading(true)
     try {
-      const info = await lookupPostalCode(code)
+      const raw = await lookupPostalCode(code)
+      const riskLevel = riskByArea?.get(raw.planningArea) as PostalCodeInfo['riskLevel']
+      const info: PostalCodeInfo = { ...raw, riskLevel }
       setResult(info)
       onResult?.(info)
     } catch {
@@ -69,7 +72,11 @@ export default function PostalCodeSearch({ onResult }: Props) {
           className={styles.result}
           style={{ borderLeft: `4px solid ${RISK_COLOURS[result.riskLevel]}` }}
         >
-          <span className={styles.area}>{result.planningArea}</span>
+          <span className={styles.area}>
+            <span className={styles.postalCode}>{result.postalCode}</span>
+            <span className={styles.areaDivider}>—</span>
+            <span className={styles.areaName}>{result.planningArea}</span>
+          </span>
           <span
             className={styles.badge}
             style={{ backgroundColor: RISK_COLOURS[result.riskLevel] }}

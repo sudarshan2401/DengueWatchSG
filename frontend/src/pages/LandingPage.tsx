@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getRiskMap } from '../api'
 import type { PlanningAreaRisk, PostalCodeInfo } from '../types'
 import ChoroplethMap from '../components/ChoroplethMap'
@@ -12,6 +12,11 @@ export default function LandingPage() {
   const [selectedArea, setSelectedArea] = useState<PostalCodeInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const riskByArea = useMemo(
+    () => new Map(areas.map((a) => [a.planningArea.toUpperCase(), a.riskLevel])),
+    [areas],
+  )
 
   const loadData = useCallback(() => {
     setLoading(true)
@@ -49,26 +54,9 @@ export default function LandingPage() {
         </section>
 
         <div className={styles.searchBar}>
-          <PostalCodeSearch onResult={(info) => setSelectedArea(info)} />
+          <PostalCodeSearch onResult={(info) => setSelectedArea(info)} riskByArea={riskByArea} />
         </div>
 
-        {selectedArea && (
-          <div className={styles.selectedInfo}>
-            <span className={styles.selectedPin}>📍</span>
-            <span>
-              <strong>{selectedArea.postalCode || selectedArea.planningArea}</strong>
-              {selectedArea.postalCode && (
-                <> &mdash; <span className={styles.selectedArea}>{selectedArea.planningArea}</span></>
-              )}
-            </span>
-            <span
-              className={styles.riskChip}
-              data-risk={selectedArea.riskLevel.toLowerCase()}
-            >
-              {selectedArea.riskLevel} Risk
-            </span>
-          </div>
-        )}
 
         {/* Map */}
         <div className={styles.mapContainer}>
@@ -100,14 +88,10 @@ export default function LandingPage() {
                 name: a.planningArea,
                 riskLevel: a.riskLevel,
                 score: a.score,
+                latitude: a.latitude,
+                longitude: a.longitude,
               }))}
-              onAreaClick={(area) =>
-                setSelectedArea({
-                  postalCode: '',
-                  planningArea: area.name,
-                  riskLevel: area.riskLevel,
-                })
-              }
+              selectedArea={selectedArea?.planningArea}
             />
           )}
         </div>

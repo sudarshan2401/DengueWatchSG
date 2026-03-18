@@ -25,6 +25,9 @@ def lambda_handler(event, context):
     path   = event["requestContext"]["http"]["path"]
 
     try:
+        if method == "OPTIONS":
+            return _respond(200, {})
+
         if method == "GET" and path == "/default/dengue-api/subscribe":
             return _get_subscriptions()
 
@@ -53,7 +56,12 @@ def _get_conn():
 def _respond(status, body):
     return {
         "statusCode": status,
-        "headers": {"Content-Type": "application/json"},
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        },
         "body": json.dumps(body, default=json_serial)
     }
 

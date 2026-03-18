@@ -8,6 +8,8 @@ export interface PlanningAreaRisk {
   score: number
   /** ISO week string, e.g. "2024-W10" */
   week: string
+  latitude: number
+  longitude: number
 }
 
 export interface PostalCodeInfo {
