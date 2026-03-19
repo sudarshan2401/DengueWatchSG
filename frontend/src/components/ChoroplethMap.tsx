@@ -1,8 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, GeoJSON, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
 import type { GeoJSON as LeafletGeoJSON } from 'leaflet'
 import type { GeoJsonObject, Feature } from 'geojson'
 import type { Layer } from 'leaflet'
+
+const pinIcon = L.divIcon({
+  className: '',
+  html: `<div style="
+    width:18px;height:18px;
+    background:#1976d2;
+    border:3px solid #fff;
+    border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg);
+    box-shadow:0 2px 6px rgba(0,0,0,0.4);
+  "></div>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 18],
+  popupAnchor: [0, -20],
+})
 import type { RiskLevel } from '../types'
 import { getPlanningAreaBoundaries } from '../api'
 import styles from './ChoroplethMap.module.css'
@@ -142,7 +158,7 @@ export default function ChoroplethMap({ areas, onAreaClick, selectedArea }: Prop
           />
         )}
         {markerPos && (
-          <Marker position={markerPos}>
+          <Marker position={markerPos} icon={pinIcon}>
             <Popup>
               <div style={{ minWidth: 140, fontFamily: 'sans-serif' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>
