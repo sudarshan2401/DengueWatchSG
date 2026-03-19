@@ -58,7 +58,7 @@ def _respond(status, body):
         "statusCode": status,
         "headers": {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": "https://d88203gxr9nw1.cloudfront.net",
             "Access-Control-Allow-Headers": "Content-Type",
             "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
         },
