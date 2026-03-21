@@ -8,6 +8,16 @@ mkdir -p build/dispatcher build/worker
 # ==========================================
 # Package and Deploy DISPATCHER Lambda
 # ==========================================
+echo "📦 Installing Database Dependencies for Dispatcher..."
+pip install \
+    --platform manylinux2014_x86_64 \
+    --target=build/dispatcher \
+    --implementation cp \
+    --python-version 3.14 \
+    --only-binary=:all: \
+    --upgrade \
+    psycopg2-binary==2.9.11 > /dev/null
+
 echo "📦 Packaging Dispatcher..."
 cp dispatcher/lambda_function.py build/dispatcher/
 cp -r shared build/dispatcher/
@@ -47,4 +57,4 @@ echo "✅ Deployment Complete!"
 # ==========================================
 echo "🧹 Cleaning up temporary build files..."
 rm -rf build/dispatcher build/worker
-echo "✅ Done"
+echo "✅ All Done!"

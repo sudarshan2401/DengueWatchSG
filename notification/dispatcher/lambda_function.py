@@ -3,6 +3,9 @@ import json
 import uuid
 import os
 import logging
+import urllib.parse
+import psycopg2
+import psycopg2.extras
 from dataclasses import asdict
 from typing import List, Dict, Set, Any
 from shared.models import NotificationPayload
@@ -11,35 +14,92 @@ from shared.models import NotificationPayload
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Init SQS client
+# Init Clients
 sqs = boto3.client("sqs", region_name="ap-southeast-1")
+s3_client = boto3.client("s3")
 
 # Read env variables
-QUEUE_URL = os.environ.get("SQS_QUEUE_URL", "")
-DUMMY_EMAIL = os.environ.get("DUMMY_EMAIL", "")
+QUEUE_URL = os.environ.get("SQS_QUEUE_URL")
+DB_HOST = os.environ.get("DB_HOST")
+DB_NAME = os.environ.get("DB_NAME")
+DB_USER = os.environ.get("DB_USER")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
+
+_conn = None
 
 
-def _get_high_risk_areas(predictions: Dict[str, str]) -> Set[str]:
-    """Extracts a set of planning areas marked as 'High' risk."""
-    return {area for area, risk in predictions.items() if risk == "High"}
+def _get_conn():
+    """Maintains a warm database connection."""
+    global _conn
+    if _conn is None or _conn.closed:
+        _conn = psycopg2.connect(
+            host=DB_HOST,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            connect_timeout=5,
+        )
+    return _conn
 
 
-def _get_affected_users(
-    subscriptions: List[Dict[str, str]], high_risk_areas: Set[str]
-) -> List[NotificationPayload]:
-    """Filters subscriptions and returns affected user data."""
+def _get_high_risk_areas(bucket_name: str, object_key: str) -> Set[str]:
+    """Fetches predictions from S3 and extracts a set of 'High' risk planning areas."""
+    try:
+        response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
+        raw_content = response["Body"].read().decode("utf-8")
+        json_data = json.loads(raw_content)
+
+        predictions = json_data.get("predictions", [])
+
+        # Build a set of areas where the risk level is High
+        high_risk_areas = {
+            row["planning_area"].strip()
+            for row in predictions
+            if row.get("risk_level", "").strip().lower() == "high"
+        }
+
+        logger.info(f"Extracted {len(high_risk_areas)} high-risk areas from S3.")
+        return high_risk_areas
+
+    except Exception as e:
+        logger.error(f"Failed to fetch/parse S3 predictions from {object_key}: {e}")
+        raise e
+
+
+def _get_affected_users(high_risk_areas: Set[str]) -> List[NotificationPayload]:
+    """Queries RDS for users subscribed to the identified high-risk areas."""
+    if not high_risk_areas:
+        return []
+
     affected_users: List[NotificationPayload] = []
+    conn = _get_conn()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    for sub in subscriptions:
-        planning_area = sub["planning_area"]
+    try:
+        # The && operator checks if the postgres array overlaps with our python list
+        query = "SELECT email, planning_areas FROM subscriptions WHERE planning_areas && %s::text[]"
+        cur.execute(query, (list(high_risk_areas),))
+        rows = cur.fetchall()
 
-        if planning_area in high_risk_areas:
-            payload = NotificationPayload(
-                email=sub["email"], planning_area=planning_area, risk_level="High"
-            )
-            affected_users.append(payload)
+        for row in rows:
+            email = row["email"]
+            user_areas = row["planning_areas"]
 
-    return affected_users
+            for area in user_areas:
+                if area.strip() in high_risk_areas:
+                    payload = NotificationPayload(
+                        email=email, planning_area=area.strip(), risk_level="High"
+                    )
+                    affected_users.append(payload)
+
+        logger.info(f"Generated {len(affected_users)} individual notification payloads.")
+        return affected_users
+
+    except Exception as e:
+        logger.error(f"Failed to query RDS for affected users: {e}")
+        raise e
+    finally:
+        cur.close()
 
 
 def _push_to_sqs_in_batches(affected_users: List[NotificationPayload], batch_size: int = 10) -> None:
@@ -62,24 +122,37 @@ def _push_to_sqs_in_batches(affected_users: List[NotificationPayload], batch_siz
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    # TODO: Replace dummy data with actual data from SageMaker and DynamoDB
-    predictions: Dict[str, str] = {"Bishan": "High", "Clementi": "Low", "Bukit Batok": "High"}
-    subscriptions: List[Dict[str, str]] = [
-        {"email": DUMMY_EMAIL, "planning_area": "Bishan"},
-        {"email": DUMMY_EMAIL, "planning_area": "Clementi"},
-        {"email": DUMMY_EMAIL, "planning_area": "Bukit Batok"},
-    ]
+    """Entry point triggered by S3 ObjectCreated."""
+    try:
+        sns_message = json.loads(event["Records"][0]["Sns"]["Message"])
+        record = sns_message["Records"][0]
+        bucket_name = record["s3"]["bucket"]["name"]
+        object_key = urllib.parse.unquote_plus(record["s3"]["object"]["key"])
 
-    # Processing logic
-    high_risk_areas: Set[str] = _get_high_risk_areas(predictions)
-    logger.info(f"High risk areas: {high_risk_areas}")
+        logger.info(f"Processing new file: s3://{bucket_name}/{object_key}")
+    except KeyError as e:
+        logger.error(f"Invalid SNS event structure: {e}")
+        return {"statusCode": 400, "body": "Invalid event"}
 
-    affected_users: List[NotificationPayload] = _get_affected_users(subscriptions, high_risk_areas)
-    logger.info(f"Found {len(affected_users)} affected subscribers.")
+    try:
+        # Parse high risk areas from the S3 JSON
+        high_risk_areas: Set[str] = _get_high_risk_areas(bucket_name, object_key)
 
-    # Dispatch
-    if affected_users:
-        _push_to_sqs_in_batches(affected_users)
+        if not high_risk_areas:
+            logger.info("No high-risk areas identified. Skipping dispatch.")
+            return {"statusCode": 200, "body": "No notifications required."}
+
+        # Fetch affected users from PostgreSQL
+        affected_users: List[NotificationPayload] = _get_affected_users(high_risk_areas)
+
+        # Dispatch to SQS
+        if affected_users:
+            _push_to_sqs_in_batches(affected_users)
+        else:
+            logger.info("No users are subscribed to the current high-risk areas.")
+
+    except Exception as e:
+        return {"statusCode": 500, "body": "Internal server error"}
 
     return {
         "statusCode": 200,
