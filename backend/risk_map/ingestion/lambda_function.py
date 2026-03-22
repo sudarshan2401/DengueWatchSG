@@ -34,14 +34,10 @@ class PredictionRecord:
     planning_area: str
     risk_level: str
     score: float
-    latitude: float = 0.0
-    longitude: float = 0.0
 
     def __post_init__(self):
         """Strict runtime type casting."""
         self.score = float(self.score)
-        self.latitude = float(self.latitude)
-        self.longitude = float(self.longitude)
 
 
 def _get_conn():
@@ -99,8 +95,6 @@ def _upsert_risk_data(records: list[PredictionRecord], week_str: str):
             r.planning_area.strip(),
             r.risk_level.strip(),
             r.score,
-            r.latitude,
-            r.longitude,
             week_str,
         )
         for r in records
@@ -108,14 +102,12 @@ def _upsert_risk_data(records: list[PredictionRecord], week_str: str):
 
     try:
         insert_query = """
-            INSERT INTO planning_area_risk (planning_area, risk_level, score, latitude, longitude, week)
+            INSERT INTO planning_area_risk (planning_area, risk_level, score, week)
             VALUES %s
             ON CONFLICT (planning_area, week)
             DO UPDATE SET 
                 risk_level = EXCLUDED.risk_level,
                 score = EXCLUDED.score,
-                latitude = EXCLUDED.latitude,
-                longitude = EXCLUDED.longitude;
         """
         psycopg2.extras.execute_values(cur, insert_query, records_to_insert, page_size=100)
         conn.commit()
