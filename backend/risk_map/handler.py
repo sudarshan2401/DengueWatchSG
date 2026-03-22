@@ -61,7 +61,7 @@ def get_latest_risk():
     cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute("""
-        SELECT planning_area, risk_level, score, latitude, longitude, week
+        SELECT planning_area, risk_level, score, week
         FROM   planning_area_risk
         WHERE  week = (
             SELECT week FROM planning_area_risk
@@ -85,9 +85,7 @@ def get_latest_risk():
             {
                 "planning_area": r["planning_area"],
                 "risk_level":    r["risk_level"],
-                "score":         float(r["score"]),
-                "latitude":      float(r["latitude"]),
-                "longitude":     float(r["longitude"])
+                "score":         float(r["score"])
             }
             for r in rows
         ]

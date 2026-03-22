@@ -3,8 +3,6 @@ CREATE TABLE IF NOT EXISTS planning_area_risk (
     planning_area VARCHAR(100)  NOT NULL,
     risk_level    VARCHAR(10)   NOT NULL CHECK (risk_level IN ('Low', 'Medium', 'High')),
     score         NUMERIC(6, 4) NOT NULL, -- Format: 50.1234 (0.0000 to 100.0000), likelihood of dengue outbreak in percentage
-    latitude      NUMERIC(9, 6) NOT NULL, -- Format: 1.234567
-    longitude     NUMERIC(9, 6) NOT NULL, -- Format: 100.123456
     week          VARCHAR(8)    NOT NULL, -- Format: e.g., "2025-W01", "2025-W02", etc.
     created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
     UNIQUE (planning_area, week)
