@@ -35,8 +35,6 @@ export interface PlanningAreaFeature {
   name: string
   riskLevel: RiskLevel
   score: number
-  latitude: number
-  longitude: number
 }
 
 interface Props {

@@ -88,8 +88,6 @@ export default function LandingPage() {
                 name: a.planningArea,
                 riskLevel: a.riskLevel,
                 score: a.score,
-                latitude: a.latitude,
-                longitude: a.longitude,
               }))}
               selectedArea={selectedArea?.planningArea}
               pinCoords={selectedArea ? [selectedArea.latitude, selectedArea.longitude] : undefined}
