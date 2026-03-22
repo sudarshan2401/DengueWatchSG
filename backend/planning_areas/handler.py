@@ -16,6 +16,8 @@ logger.setLevel(logging.INFO)
 ONEMAP_ALL_PLANNING_AREA_URL = "https://www.onemap.gov.sg/api/public/popapi/getAllPlanningarea"
 SSM_TOKEN_PATH = "/denguewatch/onemap/token"
 
+ONEMAP_REFRESHER_FUNCTION = "OneMapTokenRefresher"
+
 _cached_token = None
 
 
@@ -30,19 +32,40 @@ def _get_token() -> str:
     return _cached_token
 
 
+def _refresh_token() -> str:
+    global _cached_token
+    logger.info("Token expired (401) — invoking OneMapTokenRefresher")
+    boto3.client("lambda", region_name=os.environ.get("AWS_REGION", "ap-southeast-1")).invoke(
+        FunctionName=ONEMAP_REFRESHER_FUNCTION,
+        InvocationType="RequestResponse",
+    )
+    _cached_token = None
+    return _get_token()
+
+
+def _fetch_planning_areas(_retried: bool = False):
+    token = _get_token()
+    req = urllib.request.Request(
+        f"{ONEMAP_ALL_PLANNING_AREA_URL}?year=2019",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        if e.code == 401 and not _retried:
+            _refresh_token()
+            return _fetch_planning_areas(_retried=True)
+        raise
+
+
 def lambda_handler(event, context):
     method = (event.get("requestContext") or {}).get("http", {}).get("method", "GET")
     if method == "OPTIONS":
         return _respond(200, {})
 
     try:
-        token = _get_token()
-        req = urllib.request.Request(
-            f"{ONEMAP_ALL_PLANNING_AREA_URL}?year=2019",
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            raw = json.loads(resp.read().decode())
+        raw = _fetch_planning_areas()
     except urllib.error.HTTPError as e:
         logger.error(f"OneMap getAllPlanningarea failed: {e.code} {e.reason}")
         return _respond(502, {"error": "Failed to fetch planning areas from OneMap"})

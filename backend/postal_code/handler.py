@@ -18,6 +18,8 @@ ONEMAP_SEARCH_URL        = "https://www.onemap.gov.sg/api/common/elastic/search"
 ONEMAP_PLANNING_AREA_URL = "https://www.onemap.gov.sg/api/public/popapi/getPlanningarea"
 SSM_TOKEN_PATH           = "/denguewatch/onemap/token"
 
+ONEMAP_REFRESHER_FUNCTION = "OneMapTokenRefresher"
+
 _cached_token = None  # cache the token in memory to avoid repeated SSM calls within the same Lambda instance
 
 
@@ -30,6 +32,17 @@ def _get_token() -> str:
     ssm = boto3.client("ssm", region_name=os.environ.get("AWS_REGION", "ap-southeast-1"))
     _cached_token = ssm.get_parameter(Name=SSM_TOKEN_PATH, WithDecryption=True)["Parameter"]["Value"]
     return _cached_token
+
+
+def _refresh_token() -> str:
+    global _cached_token
+    logger.info("Token expired (401) — invoking OneMapTokenRefresher")
+    boto3.client("lambda", region_name=os.environ.get("AWS_REGION", "ap-southeast-1")).invoke(
+        FunctionName=ONEMAP_REFRESHER_FUNCTION,
+        InvocationType="RequestResponse",
+    )
+    _cached_token = None  # clear cache so _get_token() re-fetches from SSM
+    return _get_token()
 
 
 def lambda_handler(event, context):
@@ -57,7 +70,7 @@ def lambda_handler(event, context):
         return _respond(500, {"error": "Internal server error"})
 
 
-def _lookup_planning_area(postal_code: str):
+def _lookup_planning_area(postal_code: str, _retried: bool = False):
     token = _get_token()
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -73,6 +86,9 @@ def _lookup_planning_area(postal_code: str):
         with urllib.request.urlopen(req, timeout=10) as resp:
             search_data = json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
+        if e.code == 401 and not _retried:
+            _refresh_token()
+            return _lookup_planning_area(postal_code, _retried=True)
         logger.error(f"Step 1 (search) failed: {e.code} {e.reason} — body: {e.read().decode()}")
         raise
 
@@ -97,6 +113,9 @@ def _lookup_planning_area(postal_code: str):
         with urllib.request.urlopen(req, timeout=10) as resp:
             area_data = json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
+        if e.code == 401 and not _retried:
+            _refresh_token()
+            return _lookup_planning_area(postal_code, _retried=True)
         logger.error(f"Step 2 (planning area) failed: {e.code} {e.reason} — body: {e.read().decode()}")
         raise
 
