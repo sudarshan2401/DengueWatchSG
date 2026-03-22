@@ -50,6 +50,7 @@ def _respond(status, body):
             "Access-Control-Allow-Origin": "https://d88203gxr9nw1.cloudfront.net",
             "Access-Control-Allow-Headers": "Content-Type",
             "Access-Control-Allow-Methods": "GET,OPTIONS",
+            "Cache-Control": "max-age=172800"
         },
         "body": json.dumps(body)
     }
