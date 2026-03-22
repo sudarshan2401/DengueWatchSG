@@ -92,6 +92,7 @@ export default function LandingPage() {
                 longitude: a.longitude,
               }))}
               selectedArea={selectedArea?.planningArea}
+              pinCoords={selectedArea ? [selectedArea.latitude, selectedArea.longitude] : undefined}
             />
           )}
         </div>

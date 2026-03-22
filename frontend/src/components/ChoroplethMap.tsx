@@ -43,21 +43,19 @@ interface Props {
   areas: PlanningAreaFeature[]
   onAreaClick?: (area: PlanningAreaFeature) => void
   selectedArea?: string
+  pinCoords?: [number, number]
 }
 
-function FlyToArea({ selectedArea, areas }: { selectedArea?: string; areas: PlanningAreaFeature[] }) {
+function FlyToArea({ pinCoords }: { pinCoords?: [number, number] }) {
   const map = useMap()
   useEffect(() => {
-    if (!selectedArea) return
-    const area = areas.find((a) => a.name.toUpperCase() === selectedArea.toUpperCase())
-    if (area) {
-      map.flyTo([area.latitude, area.longitude], 13, { duration: 1 })
-    }
-  }, [selectedArea, areas, map])
+    if (!pinCoords) return
+    map.flyTo(pinCoords, 13, { duration: 1 })
+  }, [pinCoords, map])
   return null
 }
 
-export default function ChoroplethMap({ areas, onAreaClick, selectedArea }: Props) {
+export default function ChoroplethMap({ areas, onAreaClick, selectedArea, pinCoords }: Props) {
   const [geoData, setGeoData] = useState<GeoJsonObject | null>(null)
   const geoJsonRef = useRef<LeafletGeoJSON>(null)
 
@@ -114,26 +112,8 @@ export default function ChoroplethMap({ areas, onAreaClick, selectedArea }: Prop
     ? areas.find((a) => a.name.toUpperCase() === selectedArea.toUpperCase())
     : null
 
-  // Marker position: prefer lat/lon from risk data, fall back to GeoJSON polygon bounds centre
-  const [markerPos, setMarkerPos] = useState<[number, number] | null>(null)
-  useEffect(() => {
-    if (!selectedArea) { setMarkerPos(null); return }
-    if (selectedAreaData) {
-      setMarkerPos([selectedAreaData.latitude, selectedAreaData.longitude])
-      return
-    }
-    if (!geoJsonRef.current) return
-    geoJsonRef.current.eachLayer((layer) => {
-      const feature = (layer as any).feature as Feature | undefined
-      if (feature?.properties?.name?.toUpperCase() === selectedArea.toUpperCase()) {
-        const bounds = (layer as any).getBounds?.()
-        if (bounds) {
-          const c = bounds.getCenter()
-          setMarkerPos([c.lat, c.lng])
-        }
-      }
-    })
-  }, [selectedArea, selectedAreaData, geoData])
+  // Marker position: use pinCoords from postal code lookup (exact OneMap coordinates)
+  const markerPos: [number, number] | null = pinCoords ?? null
 
   return (
     <div className={styles.mapWrapper}>
@@ -147,7 +127,7 @@ export default function ChoroplethMap({ areas, onAreaClick, selectedArea }: Prop
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FlyToArea selectedArea={selectedArea} areas={areas} />
+        <FlyToArea pinCoords={pinCoords} />
         {geoData && (
           <GeoJSON
             key={geoKey}

@@ -16,6 +16,8 @@ export interface PostalCodeInfo {
   postalCode: string
   planningArea: string
   riskLevel: RiskLevel
+  latitude: number
+  longitude: number
 }
 
 export interface Subscription {

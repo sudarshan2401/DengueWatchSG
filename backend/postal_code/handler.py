@@ -44,7 +44,13 @@ def lambda_handler(event, context):
         if not planning_area:
             return _respond(404, {"error": f"Could not resolve postal code {code} to a planning area"})
 
-        return _respond(200, {"postalCode": code, "planningArea": planning_area})
+        planning_area_name, lat, lng = planning_area
+        return _respond(200, {
+            "postalCode": code,
+            "planningArea": planning_area_name,
+            "latitude": float(lat),
+            "longitude": float(lng),
+        })
 
     except Exception as e:
         logger.error(f"Unhandled error: {e}")
@@ -99,7 +105,7 @@ def _lookup_planning_area(postal_code: str):
         return None
 
     planning_area = area_data[0].get("pln_area_n", "")
-    return planning_area.upper() if planning_area else None
+    return (planning_area.upper(), lat, lng) if planning_area else None
 
 
 def _respond(status, body):
