@@ -10,7 +10,7 @@ A dengue risk prediction web platform for Singapore, providing real-time risk ma
 | Backend | Python, AWS API Gateway + Lambda |
 | Database | Amazon RDS (PostgreSQL) |
 | ML Pipeline | Python, Amazon SageMaker (XGBoost weekly batch inference) |
-| Data Ingestion | AWS Lambda (Python ETL) pulling from NEA data.gov.sg API |
+| Data Ingestion | AWS Lambda (Python ETL) pulling from data.gov.sg API |
 | Risk Ingestion | AWS Lambda triggered by S3 — upserts ML predictions into RDS |
 | Notifications | S3 → SNS → Dispatcher Lambda → SQS → Worker Lambda → Amazon SES |
 | OneMap | AWS Lambda auto-refreshes JWT token into SSM Parameter Store every day |
@@ -35,7 +35,11 @@ cs5224/
 │   └── worker/        # SQS → SES: sends HTML alert emails via Amazon SES
 ├── ml/                # SageMaker training & inference scripts
 ├── infra/             # AWS CDK infrastructure-as-code
-├── data-ingestion/    # ETL Lambda pulling from NEA data.gov.sg
+├── data-ingestion/    # ETL Lambdas pulling from data.gov.sg
+│   ├── lambdas/       # One folder per Lambda function
+│   │   ├── dengue/    # Lamda code for pulling dengue clusters
+│   │   └── weather/   # Lamda code for pulling rainfall and air temperature
+│   └── iam/           # IAM policy for S3 write access      
 ├── docker-compose.yml # Local development environment
 └── README.md
 ```
@@ -113,11 +117,12 @@ An S3-triggered Lambda (`backend/risk_map/ingestion/`) listens for new `predicti
 
 ## Data Ingestion
 
-A daily EventBridge rule (01:00 SGT) triggers an ETL Lambda that fetches:
-- Active **dengue clusters** from the NEA `dengue-clusters` endpoint
-- **Rainfall** and **temperature** readings from the NEA weather endpoints
+Two Lambda functions run every Sunday (16:00 UTC / 00:00 SGT Monday) via EventBridge and write cleaned JSON to `dengue-ml-data-lake`:
 
-All data is upserted into RDS (`raw_dengue_clusters`, `raw_weather` tables).
+- `WeatherDataIngestFunction` — fetches the previous day's **rainfall** and **air temperature** readings from the NEA real-time API
+- `DengueDataIngestFunction` — fetches active **dengue cluster** locations and case sizes from the NEA datasets API
+
+All data lands under `raw/weather/` and `raw/dengue/`, partitioned by date.
 
 ## Notification System
 
