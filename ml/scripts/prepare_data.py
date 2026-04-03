@@ -67,9 +67,10 @@ NEA_TEMPERATURE_URL = "https://api.data.gov.sg/v1/environment/air-temperature"
 
 FEATURE_COLS = [
     "lag_cases_1w", "lag_cases_2w", "lag_cases_3w", "lag_cases_4w",
+    "lag_cases_5w", "lag_cases_6w", "lag_cases_7w", "lag_cases_8w",
     "lag_national_1w", "lag_national_2w",
-    "lag_rainfall_2w", "lag_rainfall_3w",
-    "lag_temp_2w", "lag_temp_3w",
+    "lag_rainfall_2w", "lag_rainfall_3w", "lag_rainfall_4w",
+    "lag_temp_2w", "lag_temp_3w", "lag_temp_4w",
     "week_of_year",
 ]
 OUTPUT_COLS = FEATURE_COLS + ["risk_level", "planning_area", "week"]
@@ -509,11 +510,11 @@ def build_panel(
 
 def add_lagged_features(panel: pd.DataFrame) -> pd.DataFrame:
     df = panel.copy()
-    for lag in range(1, 5):
+    for lag in range(1, 9):
         df[f"lag_cases_{lag}w"] = df.groupby("planning_area")["cases"].shift(lag)
     for lag in (1, 2):
         df[f"lag_national_{lag}w"] = df.groupby("planning_area")["national_cases"].shift(lag)
-    for lag in (2, 3):
+    for lag in (2, 3, 4):
         df[f"lag_rainfall_{lag}w"] = df.groupby("planning_area")["rainfall"].shift(lag)
         df[f"lag_temp_{lag}w"] = df.groupby("planning_area")["temperature"].shift(lag)
     return df
