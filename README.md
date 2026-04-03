@@ -39,7 +39,6 @@ cs5224/
 │   ├── lambdas/       # One folder per Lambda function
 │   │   ├── dengue/    # Lambda code for pulling dengue clusters
 │   │   └── weather/   # Lambda code for pulling rainfall and air temperature
-│   ├── eventbridge/   # EventBridge schedule rule (CloudFormation template)
 │   └── iam/           # IAM policy for S3 write access
 ├── docker-compose.yml # Local development environment
 └── README.md
