@@ -39,9 +39,10 @@ logging.basicConfig(level=logging.INFO)
 LABEL_CLASSES = ["Low", "Medium", "High"]
 FEATURE_COLS = [
     "lag_cases_1w", "lag_cases_2w", "lag_cases_3w", "lag_cases_4w",
+    "lag_cases_5w", "lag_cases_6w", "lag_cases_7w", "lag_cases_8w",
     "lag_national_1w", "lag_national_2w",
-    "lag_rainfall_2w", "lag_rainfall_3w",
-    "lag_temp_2w", "lag_temp_3w",
+    "lag_rainfall_2w", "lag_rainfall_3w", "lag_rainfall_4w",
+    "lag_temp_2w", "lag_temp_3w", "lag_temp_4w",
     "week_sin", "week_cos",
 ]
 TARGET_COL = "risk_level"
