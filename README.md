@@ -37,9 +37,10 @@ cs5224/
 ├── infra/             # AWS CDK infrastructure-as-code
 ├── data-ingestion/    # ETL Lambdas pulling from data.gov.sg
 │   ├── lambdas/       # One folder per Lambda function
-│   │   ├── dengue/    # Lamda code for pulling dengue clusters
-│   │   └── weather/   # Lamda code for pulling rainfall and air temperature
-│   └── iam/           # IAM policy for S3 write access      
+│   │   ├── dengue/    # Lambda code for pulling dengue clusters
+│   │   └── weather/   # Lambda code for pulling rainfall and air temperature
+│   ├── eventbridge/   # EventBridge schedule rule (CloudFormation template)
+│   └── iam/           # IAM policy for S3 write access
 ├── docker-compose.yml # Local development environment
 └── README.md
 ```
