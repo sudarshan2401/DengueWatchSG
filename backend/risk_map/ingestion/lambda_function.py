@@ -107,7 +107,7 @@ def _upsert_risk_data(records: list[PredictionRecord], week_str: str):
             ON CONFLICT (planning_area, week)
             DO UPDATE SET 
                 risk_level = EXCLUDED.risk_level,
-                score = EXCLUDED.score,
+                score = EXCLUDED.score;
         """
         psycopg2.extras.execute_values(cur, insert_query, records_to_insert, page_size=100)
         conn.commit()
