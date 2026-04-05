@@ -2,7 +2,7 @@ ALERT_SUBJECT = "🚨 DENGUE ALERT: {risk_level} Risk in {planning_area}"
 
 ALERT_BODY_TEXT = """Hello,
 
-This is an automated alert from the Dengue Notification Service.
+This is an automated alert from the DengueWatch SG.
 
 The dengue risk level in your subscribed area ({planning_area}) is currently classified as {risk_level}. 
 
@@ -15,8 +15,10 @@ Please take immediate precautions to protect yourself and your community. We rec
 
 Apply insect repellent when heading outdoors and wear long, covered clothing if possible.
 
+To unsubscribe from alerts for {planning_area}, please visit: {unsubscribe_link}
+
 Stay safe,
-Dengue Notification Service
+DengueWatch SG
 """
 
 ALERT_BODY_HTML = """
@@ -29,7 +31,7 @@ ALERT_BODY_HTML = """
         </div>
         <div style="padding: 20px;">
             <p>Hello,</p>
-            <p>This is an automated alert from the Dengue Notification Service.</p>
+            <p>This is an automated alert from the DengueWatch SG.</p>
             <p>The dengue risk level in your subscribed area (<strong>{planning_area}</strong>) is currently classified as <strong style="color: #d9534f;">{risk_level}</strong>.</p>
             
             <h3 style="color: #d9534f; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Take Action: The Mozzie Wipeout</h3>
@@ -45,7 +47,11 @@ ALERT_BODY_HTML = """
                 <em>Tip: Apply insect repellent when heading outdoors and wear long, covered clothing if possible.</em>
             </p>
             
-            <p>Stay safe,<br><strong>Dengue Notification Service</strong></p>
+            <p style="margin-top: 30px; font-size: 0.9em; color: #777; border-top: 1px solid #ddd; padding-top: 10px;">
+                To unsubscribe from alerts for <strong>{planning_area}</strong>, <a href="{unsubscribe_link}" style="color: #d9534f;">click here</a>.
+            </p>
+            
+            <p>Stay safe,<br><strong>DengueWatch SG</strong></p>
         </div>
     </div>
 </body>

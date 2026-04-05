@@ -8,3 +8,4 @@ class NotificationPayload:
     email: str
     planning_area: str
     risk_level: str
+    subscription_id: str

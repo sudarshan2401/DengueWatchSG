@@ -76,21 +76,19 @@ def _get_affected_users(high_risk_areas: Set[str]) -> List[NotificationPayload]:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
-        # The && operator checks if the postgres array overlaps with our python list
-        query = "SELECT email, planning_areas FROM subscriptions WHERE planning_areas && %s::text[]"
+        # Check if planning_area matches any of the high risk areas
+        query = "SELECT id, email, planning_area FROM subscriptions WHERE planning_area = ANY(%s::text[])"
         cur.execute(query, (list(high_risk_areas),))
         rows = cur.fetchall()
 
         for row in rows:
-            email = row["email"]
-            user_areas = row["planning_areas"]
-
-            for area in user_areas:
-                if area.strip() in high_risk_areas:
-                    payload = NotificationPayload(
-                        email=email, planning_area=area.strip(), risk_level="High"
-                    )
-                    affected_users.append(payload)
+            payload = NotificationPayload(
+                email=row["email"],
+                planning_area=row["planning_area"].strip(),
+                risk_level="High",
+                subscription_id=str(row["id"])
+            )
+            affected_users.append(payload)
 
         logger.info(f"Generated {len(affected_users)} individual notification payloads.")
         return affected_users
