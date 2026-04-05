@@ -9,11 +9,11 @@ CREATE TABLE IF NOT EXISTS planning_area_risk (
 );
 
 CREATE TABLE IF NOT EXISTS subscriptions (
-    id             SERIAL PRIMARY KEY,
-    email          VARCHAR(254) NOT NULL UNIQUE,
-    planning_areas TEXT[]       NOT NULL DEFAULT '{}',
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email          VARCHAR(254) NOT NULL,
+    planning_area  VARCHAR(100) NOT NULL,
     created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    UNIQUE (email, planning_area)
 );
 
 CREATE INDEX IF NOT EXISTS idx_par_week ON planning_area_risk (week);

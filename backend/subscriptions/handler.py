@@ -34,6 +34,12 @@ def lambda_handler(event, context):
         if method == "POST" and path == "/default/dengue-api/subscribe":
             body = json.loads(event.get("body") or "{}")
             return _post_subscribe(body)
+        
+        if method == "DELETE" and path == "/default/dengue-api/subscribe":
+            uuid = event.get('queryStringParameters', {}).get('uuid')
+            if not uuid:
+                return _respond(400, {"error": "uuid parameter required"})
+            return _delete_subscription(uuid)
 
         return _respond(404, {"error": "Route not found"})
 
@@ -60,7 +66,7 @@ def _respond(status, body):
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "https://d88203gxr9nw1.cloudfront.net",
             "Access-Control-Allow-Headers": "Content-Type",
-            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS,DELETE",
         },
         "body": json.dumps(body, default=json_serial)
     }
@@ -79,11 +85,10 @@ def _get_subscriptions():
     {
         "subscriptions": [
             {
-                "id": 1,
+                "id": "uuid",
                 "email": "user@example.com",
-                "planning_areas": ["area1", "area2"],
-                "created_at": "2023-01-01T00:00:00",
-                "updated_at": "2023-01-01T00:00:00"
+                "planning_area": "area1",
+                "created_at": "2023-01-01T00:00:00"
             }
         ]
     }
@@ -91,11 +96,12 @@ def _get_subscriptions():
     conn = _get_conn()
     cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute("SELECT id, email, planning_areas, created_at, updated_at FROM subscriptions ORDER BY created_at DESC")
+    cur.execute("SELECT id, email, planning_area, created_at FROM subscriptions")
+
     rows = cur.fetchall()
 
     return _respond(200, {
-        "subscriptions": [dict(row) for row in rows]
+        "subscriptions": rows
     })
 
 
@@ -164,63 +170,47 @@ def _post_subscribe(body):
     cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
-        cur.execute("SELECT id, planning_areas FROM subscriptions WHERE email = %s", (email,))
+        for area in planning_areas:
+            cur.execute("""
+                INSERT INTO subscriptions (email, planning_area)
+                VALUES (%s, %s)
+                ON CONFLICT (email, planning_area) DO NOTHING
+            """, (email, area))
+        
+        conn.commit()
+
+        return _respond(200, {"message": "Subscription updated successfully"})
+
+    except Exception as e:
+        conn.rollback()
+        logger.error(f"DB error: {e}")
+        raise
+
+    finally:
+        cur.close()
+
+def _delete_subscription(uuid):
+    """
+    Delete a subscription by UUID.
+    """
+    conn = _get_conn()
+    cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("SELECT email FROM subscriptions WHERE id = %s", (uuid,))
         existing = cur.fetchone()
 
-        if existing:
-            current_areas = existing["planning_areas"] or []
-            new_areas = [a for a in planning_areas if a not in current_areas]
+        if not existing:
+            return _respond(404, {"error": "Subscription not found"})
 
-            if not new_areas:
-                return _respond(409, {
-                    "error": "Already subscribed to all given planning areas",
-                    "subscribed_areas": current_areas
-                })
+        email = existing["email"]
 
-            merged = current_areas + new_areas
+        cur.execute("DELETE FROM subscriptions WHERE id = %s", (uuid,))
+        conn.commit()
 
-            # updated_at set explicitly here instead of a trigger
-            cur.execute("""
-                UPDATE subscriptions
-                SET    planning_areas = %s,
-                       updated_at = NOW()
-                WHERE  email = %s
-                RETURNING id, email, planning_areas, updated_at
-            """, (merged, email))
+        logger.info(f"Deleted subscription {uuid} for email {email}")
 
-            row = cur.fetchone()
-            conn.commit()
-            
-            logger.info(f"Updated subscription for {email}: added areas {new_areas}")
-
-            return _respond(200, {
-                "message":        "Subscription updated",
-                "id":             row["id"],
-                "email":          row["email"],
-                "planning_areas": row["planning_areas"],
-                "added_areas":    new_areas,
-                "updated_at":     row["updated_at"].isoformat()
-            })
-
-        else:
-            cur.execute("""
-                INSERT INTO subscriptions (email, planning_areas)
-                VALUES (%s, %s)
-                RETURNING id, email, planning_areas, created_at
-            """, (email, planning_areas))
-
-            row = cur.fetchone()
-            conn.commit()
-
-            logger.info(f"Created new subscription for {email} with areas {planning_areas}")
-
-            return _respond(201, {
-                "message":        "Subscribed successfully",
-                "id":             row["id"],
-                "email":          row["email"],
-                "planning_areas": row["planning_areas"],
-                "created_at":     row["created_at"].isoformat()
-            })
+        return _respond(200, {"message": "Subscription deleted"})
 
     except Exception as e:
         conn.rollback()
