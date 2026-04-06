@@ -56,3 +56,8 @@ export async function getPlanningAreaBoundaries(): Promise<GeoJsonObject> {
   const { data } = await api.get<GeoJsonObject>("/planning-areas");
   return data;
 }
+
+/** Unsubscribe from alerts using a subscription UUID */
+export async function unsubscribe(uuid: string): Promise<void> {
+  await api.get("/unsubscribe", { params: { uuid } });
+}
