@@ -27,7 +27,7 @@ cs5224/
 │   │   └── ingestion/ # S3-triggered Lambda that upserts ML predictions into RDS
 │   ├── postal_code/   # GET /postal-code/{code} — resolves postal code via OneMap
 │   ├── planning_areas/# GET /planning-areas — returns GeoJSON boundaries from OneMap
-│   ├── subscriptions/ # POST/GET /subscribe — manage email subscriptions
+│   ├── subscriptions/ # POST/GET /subscribe, GET /unsubscribe — manage email subscriptions
 │   └── db/            # init.sql database schema
 ├── notification/      # Standalone notification service (Dispatcher + Worker Lambdas)
 │   ├── dispatcher/    # S3 → SQS: identifies affected subscribers, batches into SQS
@@ -42,6 +42,13 @@ cs5224/
 │   └── onemap_refresher/ # Refreshes OneMap token in SSM
 └── README.md
 ```
+
+## Key Features
+
+- **Risk Map** — weekly dengue risk scores visualised on an interactive map
+- **Postal Code Monitoring** — look up risk level for a specific postal code
+- **Email Subscriptions** — subscribe to alerts when risk levels change in monitored areas
+- **Unsubscribe Page** — one-click unsubscribe via a link in alert emails; accessible at `/unsubscribe?uuid=<subscription-id>`, handles success and error states gracefully
 
 ## Getting Started
 
