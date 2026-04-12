@@ -18,15 +18,15 @@ ses_client = boto3.client("ses", region_name="ap-southeast-1")
 
 # Read env variables
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
-API_GATEWAY_URL = os.environ.get("API_GATEWAY_URL", "")
+FRONTEND_CLOUDFRONT_URL = os.environ.get("FRONTEND_CLOUDFRONT_URL", "")
 
 
 def _send_email(payload: NotificationPayload):
     """
     Formats and sends the email using Amazon SES.
     """
-
-    unsubscribe_link = f"{API_GATEWAY_URL}/default/dengue-api/unsubscribe?uuid={payload.subscription_id}"
+    
+    unsubscribe_link = f"{FRONTEND_CLOUDFRONT_URL}/unsubscribe?uuid={payload.subscription_id}"
 
     subject = ALERT_SUBJECT.format(
         risk_level=payload.risk_level,
