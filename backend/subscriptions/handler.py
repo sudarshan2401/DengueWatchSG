@@ -35,7 +35,7 @@ def lambda_handler(event, context):
             body = json.loads(event.get("body") or "{}")
             return _post_subscribe(body)
         
-        if (method == "DELETE" and path == "/default/dengue-api/subscribe") or (method == "GET" and path == "/default/dengue-api/unsubscribe"):
+        if (method == "GET" and path == "/default/dengue-api/unsubscribe"):
             uuid = event.get('queryStringParameters', {}).get('uuid')
             if not uuid:
                 return _respond(400, {"error": "uuid parameter required"})
